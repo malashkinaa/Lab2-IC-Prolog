@@ -1,81 +1,82 @@
-:- dynamic(user_query/1).
+% Оголошення фактів 
+:- discontiguous is_a/2.
+:- discontiguous part_of/2.
+:- discontiguous causes/2.
+:- discontiguous has_property/2.
 
-% Консультація бази знань
-:- consult('knowledge.pl').
+% Факти про страви
+dish(яєшня, сніданок, солоне, 15).
+dish(яєшня_з_помідорами, сніданок, солоне, 15).
+dish(яйця_по_іспанськи, сніданок, солодке, 30).
+dish(яблучний_пиріг, вечеря, солодке, 60).
+dish(яловичий_бургер, вечеря, солоне, 60).
+dish(яблучний_кекс, сніданок, солодке, 45).
+dish(яблучний_мус, десерт, солодке, 45).
+dish(яблучна_запіканка, вечеря, солодке, 60).
+dish(якіті_карі, вечеря, гостре, 30).
+dish(японська_каша, сніданок, солодке, 20).
+dish(ячмінний_суп, обід, солоне, 45).
+dish(яблучний_торт, десерт, солодке, 60).
+dish(яловичий_стейк, вечеря, солоне, 40).
+dish(яблучний_джем, сніданок, солодке, 30).
+dish(овочевий_суп, обід, солоне, 30).
+dish(курячий_бургери, вечеря, солоне, 45).
+dish(салат_цезар, обід, солоне, 20).
+dish(паста_альфредо, вечеря, солодке, 50).
+dish(фруктовий_салат, десерт, солодке, 20).
+dish(млинці, сніданок, солодке, 15).
+dish(шоколадний_торт, десерт, солодке, 70).
+dish(плов, вечеря, солоне, 60).
+dish(суп_пюре, обід, солоне, 40).
+dish(пиріжки, сніданок, солодке, 30).
+dish(омлет, сніданок, солоне, 20).
+dish(тости, сніданок, солоне, 10).
+dish(гречка, обід, солоне, 30).
+dish(рибний_суп, обід, солоне, 40).
+dish(фрикадельки, вечеря, солоне, 50).
+dish(пиріг_з_вишнями, десерт, солодке, 45).
+dish(чізкейк, десерт, солодке, 60).
 
-% Запитувати про інформацію
-ask_about_university :-
-    write('Hi, I am here to tell you about Taras Shevchenko University. What do you want to know about Taras Shevchenko University?'), nl,
+% Правила для ідентифікації блюд
+satisfies_criteria(Dish, Type, Taste, CookingTime) :-
+    dish(Dish, Type, Taste, CookingTime).
+
+% Нові зв’язки
+causes(сніданок, енергія).            % третій тип зв’язку
+causes(вечеря, ситість).
+has_property(яєшня, популярна).       % четвертий тип зв’язку
+has_property(яблучний_пиріг, солодке).
+has_property(яловичий_стейк, поживний).
+
+% Виведення впливу зв’язків
+check_impact_on_dish(Dish) :-
+    dish(Dish, Type, _, _),
+    causes(Type, Effect),
+    write("Страва "), write(Dish), write(" викликає "), write(Effect), nl,
+    (has_property(Dish, Property) ->
+        write("Властивість "), write(Dish), write(": "), write(Property), nl; 
+        write("Немає специфічної властивості для "), write(Dish), nl).
+
+% Процедура для виведення всіх страв
+list_all_dishes :-
+    write("Список усіх страв:"), nl,
+    findall(Dish, dish(Dish, сніданок, _, _), BreakfastDishes),
+    findall(Dish, dish(Dish, обід, _, _), LunchDishes),
+    findall(Dish, dish(Dish, вечеря, _, _), DinnerDishes),
+    write("Сніданок: "), write(BreakfastDishes), nl,
+    write("Обід: "), write(LunchDishes), nl,
+    write("Вечеря: "), write(DinnerDishes), nl.
+
+% Оновлена модель виведення з новими типами зв’язків
+ask_user :- 
     repeat,
-    write('What is in your mind: '),
-    read(UserInput),
-    assert(user_query(UserInput)),
-    handle_query(UserInput),
-    write('Do you want to ask more? (y/n): '),
-    read(Continue),
-    (Continue == y -> fail ; true).
+    write("Чи хочете ви отримати список страв? (так/ні): "), read(Answer),
+    (Answer = так -> list_all_dishes;
+    (Answer = ні -> write("Дякуємо за використання програми!"), nl, ! ; write("Невірний ввод, спробуйте ще раз."), nl)),
+    write("Чи хочете ви побачити вплив нових типів зв’язків на страви? (так/ні): "), read(ImpactAnswer),
+    (ImpactAnswer = так -> 
+        write("Введіть назву страви для перевірки: "), read(Dish), check_impact_on_dish(Dish); 
+        true).
 
-% Обробка запиту
-handle_query(asked('name of the university')) :-
-    query_name(Name),
-    format('The name of the university is ~w.~n', [Name]).
-handle_query(asked('introduction')) :-
-    query_introduction(Intro),
-    format('~w~n', [Intro]).
-handle_query(asked('history of taras shevchenko university')) :-
-    query_history(History),
-    format('Brief history: ~w~n', [History]).
-handle_query(asked('location of taras shevchenko university')) :-
-    query_location(Location),
-    format('Location: ~w~n', [Location]).
-handle_query(asked('area of taras shevchenko university')) :-
-    query_area(Area),
-    format('Total area of Taras Shevchenko University is about ~w.~n', [Area]).
-handle_query(asked('current vice chancellor')) :-
-    query_vice_chancellor(VC),
-    format('The current vice chancellor of Taras Shevchenko University is ~w.~n', [VC]).
-handle_query(asked('number of faculties')) :-
-    query_number_of_faculties(Num),
-    format('Total faculties: ~w~n', [Num]).
-handle_query(asked('number of departments')) :-
-    query_number_of_departments(Num),
-    format('Total departments: ~w~n', [Num]).
-handle_query(asked('number of institutes')) :-
-    query_number_of_institutes(Num),
-    format('Total institutes: ~w~n', [Num]).
-handle_query(asked('faculties of taras shevchenko university')) :-
-    query_faculties(Facs),
-    format('Faculties are: ~w~n', [Facs]).
-handle_query(asked('departments of taras shevchenko university')) :-
-    query_departments(Depts),
-    format('Departments are: ~w~n', [Depts]).
-handle_query(asked('about department of computer science')) :-
-    query_about_cse(AboutCSE),
-    format('About Department of Computer Science: ~w~n', [AboutCSE]).
-handle_query(asked('chairman of computer science')) :-
-    query_chairman_of_cse(Chairman),
-    format('Chairman of Department of Computer Science: ~w~n', [Chairman]).
-handle_query(asked('who developed')) :-
-    query_developers(Devs),
-    format('Developers: ~w~n', [Devs]).
-handle_query(_) :-
-    write('Sorry, I cannot understand your question.'), nl.
-
-% Виконати запит
-query_name(Name) :- name(Name).
-query_introduction(Intro) :- introduction('taras_shevchenko_uni', Intro).
-query_history(History) :- history('taras_shevchenko_uni', History).
-query_location(Location) :- location('taras_shevchenko_uni', Location).
-query_area(Area) :- area('taras_shevchenko_uni', Area).
-query_vice_chancellor(VC) :- vice_chancellor('taras_shevchenko_uni', VC).
-query_number_of_faculties(Num) :- number_of_faculties('taras_shevchenko_uni', Num).
-query_number_of_departments(Num) :- number_of_departments('taras_shevchenko_uni', Num).
-query_number_of_institutes(Num) :- number_of_institutes('taras_shevchenko_uni', Num).
-query_faculties(Facs) :- faculties('taras_shevchenko_uni', Facs).
-query_departments(Depts) :- departments('taras_shevchenko_uni', Depts).
-query_about_cse(About) :- about_department_of_computer_science_and_engineering('taras_shevchenko_uni', About).
-query_chairman_of_cse(Chairman) :- chairman_of_cse('Department of Computer Science', Chairman).
-query_developers(Devs) :- developers(Devs).
-
-% Запустити запит
-:- initialization(ask_about_university).
+% Запуск програми
+:- initialization(ask_user).
