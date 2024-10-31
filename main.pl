@@ -1,8 +1,8 @@
-% Оголошення фактів 
+% Оголошення фактів
 :- discontiguous is_a/2.
 :- discontiguous part_of/2.
-:- discontiguous causes/2.
-:- discontiguous has_property/2.
+:- discontiguous causes/2. % новий тип зв'язку
+:- discontiguous has_property/2. % новий тип зв'язку
 
 % Факти про страви
 dish(яєшня, сніданок, солоне, 15).
@@ -38,26 +38,27 @@ dish(пиріг_з_вишнями, десерт, солодке, 45).
 dish(чізкейк, десерт, солодке, 60).
 
 % Правила для ідентифікації блюд
-satisfies_criteria(Dish, Type, Taste, CookingTime) :-
+satisfies_criteria(Dish, Type, Taste, CookingTime) :- 
     dish(Dish, Type, Taste, CookingTime).
 
-% Нові зв’язки
-causes(сніданок, енергія).            % третій тип зв’язку
-causes(вечеря, ситість).
-has_property(яєшня, популярна).       % четвертий тип зв’язку
-has_property(яблучний_пиріг, солодке).
-has_property(яловичий_стейк, поживний).
+% Запит користувача та пошук блюд
+ask_user :-
+    repeat, % Дозволяє повторювати запит
+    write("Чи хочете ви отримати список страв? (так/ні): "), read(Answer),
+    (Answer = так -> 
+        list_all_dishes;
+        (Answer = ні -> write("Дякуємо за використання програми!"), nl, ! ; write("Невірний ввод, спробуйте ще раз."), nl)),
+    write("Чи хочете ви зробити запит на конкретну страву? (так/ні): "), read(QueryAnswer),
+    (QueryAnswer = так -> query_dish; true).
 
-% Виведення впливу зв’язків
-check_impact_on_dish(Dish) :-
-    dish(Dish, Type, _, _),
-    causes(Type, Effect),
-    write("Страва "), write(Dish), write(" викликає "), write(Effect), nl,
-    (has_property(Dish, Property) ->
-        write("Властивість "), write(Dish), write(": "), write(Property), nl; 
-        write("Немає специфічної властивості для "), write(Dish), nl).
+query_dish :-
+    write("Яке блюдо ви бажаєте? (сніданок, обід, вечеря): "), read(Type),
+    write("Який смак ви б хотіли? (солодке, солоне, гостре, кисле): "), read(Taste),
+    write("Який час приготування ви бажаєте? (15, 30, 60, 120): "), read(CookingTime),
+    findall(Dish, satisfies_criteria(Dish, Type, Taste, CookingTime), Dishes),
+    (Dishes = [] -> write("На жаль, не знайдено блюд, що відповідають заданим критеріям.");
+    write("Рекомендовані блюда: "), write(Dishes)), nl.
 
-% Процедура для виведення всіх страв
 list_all_dishes :-
     write("Список усіх страв:"), nl,
     findall(Dish, dish(Dish, сніданок, _, _), BreakfastDishes),
@@ -67,16 +68,54 @@ list_all_dishes :-
     write("Обід: "), write(LunchDishes), nl,
     write("Вечеря: "), write(DinnerDishes), nl.
 
-% Оновлена модель виведення з новими типами зв’язків
-ask_user :- 
-    repeat,
-    write("Чи хочете ви отримати список страв? (так/ні): "), read(Answer),
-    (Answer = так -> list_all_dishes;
-    (Answer = ні -> write("Дякуємо за використання програми!"), nl, ! ; write("Невірний ввод, спробуйте ще раз."), nl)),
-    write("Чи хочете ви побачити вплив нових типів зв’язків на страви? (так/ні): "), read(ImpactAnswer),
-    (ImpactAnswer = так -> 
-        write("Введіть назву страви для перевірки: "), read(Dish), check_impact_on_dish(Dish); 
-        true).
+% Правила для онтології
+is_a(блюдо, їжа).
+is_a(сніданок, тип_страви).
+is_a(обід, тип_страви).
+is_a(вечеря, тип_страви).
+is_a(десерт, тип_страви).
+
+% Мульти-наслідування
+is_a(шоколадний_торт, десерт).
+is_a(шоколадний_торт, блюдо).
+
+part_of(яєшня, сніданок).
+part_of(яєшня_з_помідорами, сніданок).
+part_of(яйця_по_іспанськи, сніданок).
+part_of(яблучний_пиріг, вечеря).
+part_of(яловичий_бургер, вечеря).
+part_of(яблучний_кекс, сніданок).
+part_of(яблучний_мус, десерт).
+part_of(яблучна_запіканка, вечеря).
+part_of(якіті_карі, вечеря).
+part_of(японська_каша, сніданок).
+part_of(ячмінний_суп, обід).
+part_of(яблучний_торт, десерт).
+part_of(яловичий_стейк, вечеря).
+part_of(яблучний_джем, сніданок).
+part_of(овочевий_суп, обід).
+part_of(курячий_бургери, вечеря).
+part_of(салат_цезар, обід).
+part_of(паста_альфредо, вечеря).
+part_of(фруктовий_салат, десерт).
+part_of(млинці, сніданок).
+part_of(шоколадний_торт, десерт).
+part_of(плов, вечеря).
+part_of(суп_пюре, обід).
+
+% Нові зв'язки
+causes(сніданок, енергія).
+has_property(яєшня, популярна).
+
+% Заборона наслідування
+% Забороняємо наслідування властивостей десертів
+part_of(X, десерт) :- \+ is_a(X, десерт).
+
+% Потенційно нескінченне виведення
+infinite_proof :- 
+    write("Це приклад потенційно нескінченного виведення."),
+    nl,
+    fail.
 
 % Запуск програми
 :- initialization(ask_user).
